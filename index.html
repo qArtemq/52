@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>52 на 9 - Тренировка</title>
+    <link rel="manifest" href="manifest.json?v=5">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png?v=5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1E1E1E">
+    <link rel="stylesheet" href="style.css?v=8">
+</head>
+<body class="app-mode">
+    <header class="app-header">
+        <h1 style="display: none;">Метод 52 на 9</h1>
+        <div class="tabs" style="display: flex; gap: 5px; justify-content: center; width: 100%; max-width: 800px; margin: 0 auto;">
+            <button id="tab-52" class="btn btn-primary" style="flex: 1; padding: 12px 5px; font-size: 0.95rem; border-radius: 8px;">52 на 9</button>
+            <button id="tab-moons" class="btn btn-secondary" style="flex: 1; padding: 12px 5px; font-size: 0.95rem; border-radius: 8px;">9 Лун 🌙</button>
+            <button id="tab-massage" class="btn btn-secondary" style="flex: 1; padding: 12px 5px; font-size: 0.95rem; border-radius: 8px;">Массаж 💆‍♂️</button>
+            <button id="btn-profile" class="btn btn-secondary" style="padding: 12px; border-radius: 8px; width: 45px; display: flex; justify-content: center; align-items: center;" title="Профиль">👤</button>
+        </div>
+    </header>
+
+    <main class="app-content">
+        <section class="timer-section" id="timer-section">
+            <button id="btn-toggle-timer" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px; padding: 8px; font-size: 0.9rem;">⏱ Показать таймер</button>
+            <div id="timer-content" style="display: none;">
+                <div class="timer-display" id="timer" style="font-size: 2.5rem; margin-bottom: 10px;">00:00:00</div>
+                <div class="timer-controls" style="display: flex; gap: 10px;">
+                    <button id="btn-start-timer" class="btn btn-primary" style="flex: 1; padding: 10px; font-size: 1rem;">СТАРТ</button>
+                    <button id="btn-reset-timer" class="btn btn-danger" style="flex: 1; padding: 10px; font-size: 1rem;">СБРОС</button>
+                </div>
+            </div>
+            <div style="margin-top: 10px; display: flex; gap: 10px;">
+                <button id="btn-rules" class="btn btn-primary" style="flex: 1; padding: 10px; font-size: 0.9rem;">📖 Правила</button>
+                <button id="btn-safety" class="btn btn-secondary" style="flex: 1; padding: 10px; font-size: 0.9rem;">🛡️ Техника</button>
+            </div>
+        </section>
+
+        <section class="cards-section" id="cards-section">
+            <div id="cards-container" class="cards-container">
+                <div class="empty-state" id="empty-state">
+                    Нажмите "Начать", чтобы получить карты
+                    <br><br>
+                    <button id="btn-restore" class="btn btn-secondary" style="display: none;">Восстановить последнюю</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Раздел 9 Лун (Скрыт по умолчанию) -->
+        <section class="moons-section" id="moons-section" style="display: none;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="color: var(--primary-color);">Растяжка "9 Лун"</h2>
+                
+                <div id="moon-calculator" style="background: #2a2a2a; padding: 15px; border-radius: 12px; margin-top: 15px; text-align: left;">
+                    <div style="font-size: 0.9rem; color: #aaa; margin-bottom: 5px;">Луна на сегодня (<span id="calc-date"></span>):</div>
+                    <div style="font-size: 1.2rem; font-weight: bold; color: #fff;" id="calc-result">Вычисляю...</div>
+                    <div style="font-size: 0.8rem; color: #888; margin-top: 5px;" id="calc-formula"></div>
+                </div>
+
+                <button id="btn-moons-intro" class="btn btn-secondary" style="width: 100%; margin-top: 15px;">📖 Что такое 9 MOON?</button>
+            </div>
+            <div id="moons-container" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Кнопки лун будут добавлены через JS -->
+            </div>
+        </section>
+
+        <!-- Раздел Массаж (Скрыт по умолчанию) -->
+        <section class="massage-section" id="massage-section" style="display: none;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h2 style="color: var(--primary-color);">Курс "Массаж"</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Выберите урок</p>
+            </div>
+            <div id="massage-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px;">
+                <!-- Кнопки массажа будут добавлены через JS -->
+            </div>
+        </section>
+    </main>
+
+    <nav class="app-bottom-bar" id="bottom-bar">
+        <div style="display: flex; gap: 10px; width: 100%; margin-bottom: 10px;">
+            <button id="btn-mode-9" class="btn btn-primary" style="flex: 1; padding: 10px;">9 карт</button>
+            <button id="btn-mode-6" class="btn btn-secondary" style="flex: 1; padding: 10px;">6 карт</button>
+        </div>
+        <button id="btn-deal" class="btn btn-large btn-primary" style="margin-bottom: 0; padding: 18px;">НАЧАТЬ ТРЕНИРОВКУ</button>
+    </nav>
+
+    <!-- Модальное окно для видео -->
+    <div id="video-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Карта</h2>
+                <span class="close-btn" id="close-modal">&times;</span>
+            </div>
+            <div class="video-container">
+                <img id="exercise-image" style="display: none; width: 100%; border-radius: 12px; margin-bottom: 15px;" />
+                <video id="exercise-video" controls playsinline preload="metadata">
+                    Ваш браузер не поддерживает видео.
+                </video>
+                <div style="display: flex; justify-content: center; gap: 15px; margin-top: 15px; padding: 0 15px 15px 15px;">
+                    <button id="btn-rewind" class="btn btn-secondary" style="flex: 1; padding: 15px; font-size: 1.1rem;">⏪ -10 сек</button>
+                    <button id="btn-forward" class="btn btn-secondary" style="flex: 1; padding: 15px; font-size: 1.1rem;">⏩ +10 сек</button>
+                </div>
+                <div id="modal-text" style="display: none; padding: 15px; color: #fff; background: var(--bg-color); border-top: 1px solid #333; font-size: 0.95rem; text-align: left; line-height: 1.5;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно профиля -->
+    <div id="profile-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>👤 Профиль</h2>
+                <span class="close-btn" id="close-profile-modal">&times;</span>
+            </div>
+            <div style="padding: 15px;">
+                <label style="color: #aaa; font-size: 0.9rem; display: block; margin-bottom: 5px;">Имя пользователя:</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <input type="text" id="profile-name-input" placeholder="Введите имя..." style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; font-size: 1rem;">
+                    <button id="btn-login" class="btn btn-primary" style="padding: 12px 20px;">Войти</button>
+                </div>
+                
+                <h3 style="color: #fff; margin-bottom: 10px; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center;">
+                    История тренировок
+                    <button id="btn-clear-history" class="btn btn-danger" style="font-size: 0.8rem; padding: 5px 10px; margin: 0; display: none;">Очистить всё</button>
+                </h3>
+                <div id="history-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 40vh; overflow-y: auto;">
+                    <div class="empty-state">История пуста. Войдите в профиль или начните тренировку.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="massage_data.js?v=1"></script>
+    <script src="moons_data.js?v=5"></script>
+    <script src="video_sources.js?v=4"></script>
+    <script src="app.js?v=28"></script>
+</body>
+</html>

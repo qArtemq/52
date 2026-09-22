@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Проверка видео с Google Диска</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { font-family: system-ui, sans-serif; background: #1e1e1e; color: #eee; margin: 0; padding: 16px; }
+    h1 { font-size: 1.25rem; margin: 0 0 8px; }
+    .hint { color: #aaa; margin-bottom: 16px; font-size: 0.9rem; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    button, a.btn {
+      background: #333; color: #fff; border: 1px solid #555; border-radius: 8px;
+      padding: 10px 14px; cursor: pointer; text-decoration: none; font-size: 0.95rem;
+    }
+    button:hover, a.btn:hover { background: #444; }
+    button.ok { border-color: #2ecc71; }
+    button.fail { border-color: #e74c3c; }
+    button.active { background: #0b6e4f; border-color: #0b6e4f; }
+    #player-wrap { background: #111; border-radius: 12px; padding: 12px; margin-top: 8px; }
+    video { width: 100%; max-height: 60vh; background: #000; border-radius: 8px; }
+    #status { margin-top: 8px; font-size: 0.9rem; color: #ccc; word-break: break-all; }
+    .section { margin: 18px 0 8px; font-weight: 600; color: #8fd6b8; }
+    #summary { margin-top: 16px; padding: 12px; background: #2a2a2a; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>☁ Проверка видео с Google Диска</h1>
+  <p class="hint">
+    Нажимайте ролики по очереди. Если играет — хорошо.
+    Для карт важна перемотка: откройте карточный ролик и прыгните ползунком вперёд.
+    <br>
+    <a class="btn" href="index.html?drive=1">Открыть всё приложение с Диска</a>
+  </p>
+
+  <div id="player-wrap">
+    <video id="v" controls playsinline preload="metadata"></video>
+    <div id="status">Выберите видео ниже</div>
+  </div>
+
+  <div id="list"></div>
+  <div id="summary"></div>
+
+  <script src="video_sources.js?v=4"></script>
+  <script>
+    // На этой странице всегда берём Диск
+    const FORCE = true;
+    const v = document.getElementById('v');
+    const status = document.getElementById('status');
+    const list = document.getElementById('list');
+    const summary = document.getElementById('summary');
+    const results = {};
+
+    function urlFor(path) {
+      const id = VIDEO_DRIVE_IDS[path];
+      if (!id) return null;
+      // Через локальный прокси /media/ (см. drive_server.py)
+      return driveStreamUrl(String(id).trim());
+    }
+
+    function mark(path, ok) {
+      results[path] = ok;
+      const btn = list.querySelector(`[data-path="${CSS.escape(path)}"]`);
+      if (btn) {
+        btn.classList.remove('ok', 'fail', 'active');
+        btn.classList.add(ok ? 'ok' : 'fail');
+      }
+      updateSummary();
+    }
+
+    function updateSummary() {
+      const total = Object.keys(VIDEO_DRIVE_IDS).length;
+      const checked = Object.keys(results).length;
+      const ok = Object.values(results).filter(Boolean).length;
+      const fail = checked - ok;
+      summary.textContent = `Проверено: ${checked}/${total}. Ок: ${ok}. Ошибки: ${fail}.`;
+    }
+
+    function play(path) {
+      const url = urlFor(path);
+      [...list.querySelectorAll('button')].forEach(b => b.classList.remove('active'));
+      const btn = list.querySelector(`[data-path="${CSS.escape(path)}"]`);
+      if (btn) btn.classList.add('active');
+
+      if (!url) {
+        status.textContent = 'Нет ID для: ' + path;
+        mark(path, false);
+        return;
+      }
+
+      status.textContent = 'Загрузка…\n' + url;
+      v.onerror = () => {
+        status.textContent = 'Ошибка воспроизведения\n' + url;
+        mark(path, false);
+      };
+      v.onloadeddata = () => {
+        status.textContent = `Играет (${Math.round(v.duration || 0)} сек)\n` + url;
+        mark(path, true);
+        v.play().catch(() => {});
+      };
+      v.src = url;
+      v.load();
+    }
+
+    const groups = {
+      'Медиа_52_на_9': [],
+      '9 MOON': [],
+      'Массаж': []
+    };
+    Object.keys(VIDEO_DRIVE_IDS).forEach(path => {
+      const g = path.split('/')[0];
+      if (groups[g]) groups[g].push(path);
+      else groups[g] = [path];
+    });
+
+    Object.entries(groups).forEach(([title, paths]) => {
+      const h = document.createElement('div');
+      h.className = 'section';
+      h.textContent = title + ` (${paths.length})`;
+      list.appendChild(h);
+      const row = document.createElement('div');
+      row.className = 'row';
+      paths.sort().forEach(path => {
+        const name = path.split('/').slice(1).join('/');
+        const btn = document.createElement('button');
+        btn.textContent = name;
+        btn.dataset.path = path;
+        btn.onclick = () => play(path);
+        row.appendChild(btn);
+      });
+      list.appendChild(row);
+    });
+
+    updateSummary();
+    status.textContent = `Готово к проверке. Файлов с ID: ${countFilledDriveIds()}/${countTotalDriveSlots()}`;
+  </script>
+</body>
+</html>
