@@ -760,13 +760,40 @@ function updateProfileButton() {
     }
 }
 
-async function syncProfileToServer() {
+function profileLocalKey(user) {
+    return 'profileData_' + user;
+}
+
+function saveProfileLocally() {
     if (!currentUser) return;
     try {
-        const data = {
+        localStorage.setItem(profileLocalKey(currentUser), JSON.stringify({
             history: userHistory,
             massageProgress: massageProgress
-        };
+        }));
+    } catch (e) {
+        console.error('local profile save failed', e);
+    }
+}
+
+function loadProfileLocally() {
+    if (!currentUser) return null;
+    try {
+        const raw = localStorage.getItem(profileLocalKey(currentUser));
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+async function syncProfileToServer() {
+    if (!currentUser) return;
+    const data = {
+        history: userHistory,
+        massageProgress: massageProgress
+    };
+    saveProfileLocally();
+    try {
         await fetch(window.location.origin + '/api/profile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -779,11 +806,28 @@ async function syncProfileToServer() {
 
 async function loadProfileFromServer() {
     if (!currentUser) return;
+
+    // Сначала локальный кэш этого браузера (на этом же сайте)
+    const local = loadProfileLocally();
+    if (local) {
+        if (Array.isArray(local.history)) userHistory = local.history;
+        if (local.massageProgress && Object.keys(local.massageProgress).length > 0) {
+            massageProgress = local.massageProgress;
+            localStorage.setItem('massageProgress', JSON.stringify(massageProgress));
+            renderMassageList();
+        }
+        renderHistory();
+    }
+
     try {
         const res = await fetch(window.location.origin + `/api/profile?user=${encodeURIComponent(currentUser)}`);
         if (res.ok) {
             const data = await res.json();
-            userHistory = data.history || [];
+            const serverHistory = data.history || [];
+            // Берём более полную историю (сервер или локальный кэш)
+            if (serverHistory.length >= userHistory.length) {
+                userHistory = serverHistory;
+            }
             
             // Восстанавливаем массаж из облака, если там есть данные
             if (data.massageProgress && Object.keys(data.massageProgress).length > 0) {
@@ -791,10 +835,12 @@ async function loadProfileFromServer() {
                 localStorage.setItem('massageProgress', JSON.stringify(massageProgress));
                 renderMassageList();
             }
+            saveProfileLocally();
             renderHistory();
         }
     } catch (e) {
         console.error('Ошибка загрузки профиля', e);
+        renderHistory();
     }
 }
 

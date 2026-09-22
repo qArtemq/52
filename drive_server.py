@@ -7,18 +7,39 @@
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 import urllib.error
 import urllib.request
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+from urllib.parse import parse_qs, unquote, urlparse
 
 PORT = int(os.environ.get("PORT", "8530"))
 ROOT = os.path.dirname(os.path.abspath(__file__))
+PROFILE_FILE = os.path.join(ROOT, "profiles.json")
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
 )
+
+
+def load_profiles():
+    try:
+        if os.path.exists(PROFILE_FILE):
+            with open(PROFILE_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+    except Exception as e:
+        print("Error loading profiles:", e, flush=True)
+    return {}
+
+
+def save_profiles(data):
+    try:
+        with open(PROFILE_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("Error saving profiles:", e, flush=True)
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -27,13 +48,14 @@ class Handler(SimpleHTTPRequestHandler):
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")
+        self.send_header("Access-Control-Allow-Origin", "*")
         super().end_headers()
 
     def do_OPTIONS(self):
-        if self.path.startswith("/media/"):
+        if self.path.startswith("/media/") or self.path.startswith("/api/"):
             self.send_response(204)
             self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+            self.send_header("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS")
             self.send_header("Access-Control-Allow-Headers", "Range, Content-Type")
             self.end_headers()
             return
@@ -46,17 +68,63 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_HEAD()
 
     def do_GET(self):
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/profile":
+            self.handle_profile_get(parsed)
+            return
         if self.path.startswith("/media/"):
             self.proxy_drive(head_only=False)
             return
         super().do_GET()
 
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/profile":
+            self.handle_profile_post()
+            return
+        self.send_error(404)
+
+    def handle_profile_get(self, parsed):
+        query = parse_qs(parsed.query)
+        username = (query.get("user") or [""])[0]
+        profiles = load_profiles()
+        user_data = profiles.get(
+            username,
+            {"history": [], "currentWorkout": None, "massageProgress": {}},
+        )
+        body = json.dumps(user_data, ensure_ascii=False).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def handle_profile_post(self):
+        length = int(self.headers.get("Content-Length", 0))
+        raw = self.rfile.read(length) if length else b"{}"
+        try:
+            req = json.loads(raw.decode("utf-8"))
+            username = req.get("username")
+            data = req.get("data")
+            if username and data is not None:
+                profiles = load_profiles()
+                profiles[username] = data
+                save_profiles(profiles)
+                body = json.dumps({"status": "ok"}, ensure_ascii=False).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+        except Exception as e:
+            print("Error parsing profile POST:", e, flush=True)
+        self.send_response(400)
+        self.end_headers()
+
     def proxy_drive(self, head_only: bool):
         raw = self.path[len("/media/") :]
         file_id = raw.split("?", 1)[0].split("#", 1)[0].strip()
-        # decode percent-encoding if any
-        from urllib.parse import unquote
-
         file_id = unquote(file_id)
         if not file_id or "/" in file_id or len(file_id) < 20:
             self.send_error(400, "bad file id")
