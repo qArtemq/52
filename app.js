@@ -14,14 +14,6 @@ if (typeof resolveMediaUrl !== 'function') {
     const total = typeof countTotalDriveSlots === 'function' ? countTotalDriveSlots() : 0;
     const fromDrive = typeof isUsingGoogleDrive === 'function' && isUsingGoogleDrive();
     console.info(`Видео: ${filled}/${total} ID. Источник сейчас: ${fromDrive ? 'Google Диск' : 'локальные файлы'}`);
-    if (fromDrive) {
-        const bar = document.createElement('div');
-        bar.id = 'drive-mode-banner';
-        bar.textContent = '☁ Режим Google Диска — видео грузятся из облака';
-        bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#0b6e4f;color:#fff;text-align:center;padding:8px 12px;font-size:14px;';
-        document.body.prepend(bar);
-        document.body.style.paddingTop = '36px';
-    }
 }
 
 const suits = {
